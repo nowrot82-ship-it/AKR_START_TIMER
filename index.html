@@ -1,11 +1,147 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08090b"><title>AKR START TIMER — TEST v2</title><style>
-:root{font-family:Arial,Helvetica,sans-serif;color:#fff;background:#08090b}*{box-sizing:border-box}body{margin:0}.app{min-height:100dvh;max-width:1400px;margin:auto;padding:clamp(10px,2vw,22px);display:flex;flex-direction:column;gap:clamp(8px,1.4vh,16px)}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px}.brand{font-size:clamp(24px,4.5vw,54px);font-weight:1000;font-style:italic;letter-spacing:-.035em;line-height:1.05;text-shadow:0 2px 5px #000}.brand b{color:#f0252d}.tag{font-size:clamp(10px,1.5vw,17px);color:#a7a7a7;letter-spacing:.035em}.flag{font-size:clamp(25px,5vw,65px);font-weight:900;opacity:.85;letter-spacing:-.12em;color:#eee;transform:skew(-14deg)}
-.stage{flex:1;min-height:260px;display:flex}.panel{width:100%;border-radius:clamp(20px,3vw,36px);border:2px solid #ff3333;background:radial-gradient(ellipse at 50% 55%,#c91116 0%,#970000 52%,#610000 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,1.4vh,20px);padding:clamp(12px,2vw,26px);transition:background .16s,border-color .16s;overflow:hidden}.panel.green{background:radial-gradient(ellipse at 50% 55%,#10ae2c 0%,#04761a 55%,#003c0c 100%);border-color:#1ef447}
-.hint{font-weight:800;font-size:clamp(17px,2.8vw,34px);color:#f3dada;text-align:center}.digits{font-weight:1000;font-variant-numeric:tabular-nums;letter-spacing:-.065em;line-height:.98;white-space:nowrap;text-align:center;font-size:clamp(145px,32vh,440px);text-shadow:0 5px 18px #0003}.digits.time{font-size:clamp(57px,13.4vw,220px)}.light{width:clamp(40px,8vh,105px);aspect-ratio:1;border-radius:50%;background:#ff5353;box-shadow:0 0 40px #ff505099;border:3px solid #b30c0c}.panel.green .light{background:#38ff52;box-shadow:0 0 40px #3cff4faa;border-color:#038e1d}.signal{font-size:clamp(27px,5.2vw,65px);font-weight:1000;line-height:1}.sub{font-size:clamp(13px,2vw,23px);color:#f5dada;text-align:center}.panel.green .sub{color:#d8ffdf}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.controls input{grid-column:1/-1;width:100%;min-width:0;font-size:clamp(22px,3.3vw,38px);font-weight:800;border:3px solid #555;border-radius:15px;background:#222;color:white;padding:clamp(12px,2vh,22px)}.controls button,.history button{border:0;border-radius:14px;padding:clamp(12px,2vh,22px) 14px;font-weight:900;font-size:clamp(20px,3vw,34px);cursor:pointer}.start{background:#f03239;color:#fff}.start:disabled{opacity:.4}.historyToggle{background:#353535;color:#fff}.foot{display:flex;justify-content:space-between;gap:10px;color:#bbb;font-size:clamp(11px,1.6vw,16px);flex-wrap:wrap}.status{color:#ffd38c}.history{display:none;background:#222;padding:14px;border-radius:14px;max-height:36vh;overflow:auto}.history.open{display:block}.history h2{margin:0 0 10px;font-size:20px}.history table{width:100%;border-collapse:collapse}.history td,.history th{padding:8px;border-bottom:1px solid #444;text-align:left}.history button{font-size:15px;background:#555;color:white;margin-top:10px}
-@media (orientation:landscape){.app{gap:6px;padding:8px 14px}.stage{min-height:100px}.panel{gap:2px}.digits{font-size:clamp(85px,43vh,380px)}.digits.time{font-size:clamp(55px,18vh,190px)}.light{width:clamp(24px,6vh,65px)}.signal{font-size:clamp(22px,5vh,48px)}.controls{grid-template-columns:1fr 1fr 1fr}.controls input{grid-column:auto}.controls button,.controls input{padding:7px 12px}.flag{font-size:30px}}
-@media (max-width:380px){.digits.time{font-size:12.4vw}.brand{font-size:22px}.flag{font-size:22px}}
-</style></head><body><main class="app"><header class="top"><div><div class="brand">AKR <b>START</b> TIMER</div><div class="tag">KJS CHRONO SYSTEM · WERSJA TESTOWA</div></div><div class="flag" aria-hidden="true">▨▨▨</div></header><section class="stage"><div class="panel" id="lamp"><div class="hint" id="clockLabel">AKTUALNY CZAS</div><div class="digits time" id="display">--:--:--</div><div class="light" aria-hidden="true"></div><div class="signal" id="signal">CZEKAJ</div><div class="sub" id="crewInfo">Oczekiwanie na załogę</div></div></section><section class="controls"><input id="crew" type="text" inputmode="numeric" autocomplete="off" placeholder="NR ZAŁOGI" aria-label="Numer załogi" maxlength="8"><button class="start" id="start">START · 30 s</button><button class="historyToggle" id="historyToggle">HISTORIA</button></section><div class="foot"><span class="status" id="status">Zapis lokalny · bez połączenia z arkuszem</span><span id="count">Zapisane starty: 0</span></div><section class="history" id="history"><h2>Historia startów (lokalna)</h2><table><thead><tr><th>Załoga</th><th>Data</th><th>Czas startu</th></tr></thead><tbody id="rows"></tbody></table><button id="export">Eksport CSV</button> <button id="clear">Usuń historię</button></section><span id="mode" hidden>GOTOWOŚĆ</span></main><script>
-(()=>{'use strict';const $=id=>document.getElementById(id),KEY='akr_start_timer_test_v1';let state='idle',deadline=0,startEpoch=0,greenUntil=0,crewNumber='',frame=0;const pad=(n,l=2)=>String(n).padStart(l,'0');const formatTime=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;const formatPrecise=d=>`${formatTime(d)}.${pad(d.getMilliseconds(),3)}`;function load(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch{return []}}function store(rows){try{localStorage.setItem(KEY,JSON.stringify(rows));return true}catch{return false}}function renderHistory(){const rows=load();$('count').textContent=`Zapisane starty: ${rows.length}`;$('rows').replaceChildren();for(const r of rows.slice().reverse()){$('rows').insertAdjacentHTML('beforeend',`<tr><td>${escapeHTML(r.crew)}</td><td>${escapeHTML(r.date)}</td><td>${escapeHTML(r.time)}</td></tr>`)}}function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function lamp(green){$('lamp').classList.toggle('green',green);$('signal').textContent=green?'START':'CZEKAJ'}function idle(){state='idle';lamp(false);$('mode').textContent='GOTOWOŚĆ';$('clockLabel').textContent='AKTUALNY CZAS';$('display').classList.add('time');$('crewInfo').textContent='Oczekiwanie na załogę';$('crew').value='';$('crew').disabled=false;$('start').disabled=false;$('historyToggle').disabled=false;$('history').classList.remove('open');$('history').style.display='';$('status').textContent='Zapis lokalny · bez połączenia z arkuszem'}function saveStart(){const d=new Date(startEpoch);const r={crew:crewNumber,date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:formatPrecise(d),timestamp:d.toISOString()};const rows=load();rows.push(r);const ok=store(rows);renderHistory();$('status').textContent=ok?`Zapisano lokalnie: załoga ${crewNumber} · ${r.time}`:'UWAGA: nie udało się zapisać lokalnie!'}function tick(){const now=performance.now();if(state==='idle'){$('display').textContent=formatTime(new Date())}else if(state==='countdown'){const remaining=deadline-now;if(remaining<=0){state='green';greenUntil=deadline+3000;lamp(true);$('mode').textContent='START!';$('display').textContent='00';$('clockLabel').textContent='START';saveStart()}else{$('display').textContent=pad(Math.ceil(remaining/1000))}}else if(state==='green'&&now>=greenUntil){idle()}frame=requestAnimationFrame(tick)}$('start').addEventListener('click',()=>{if(state!=='idle')return;const nr=$('crew').value.trim();if(!/^[0-9]{1,8}$/.test(nr)){alert('Wpisz numer startowy załogi (cyfry).');return}crewNumber=nr;const nowPerf=performance.now();deadline=nowPerf+30000;startEpoch=Date.now()+30000;state='countdown';$('display').classList.remove('time');$('clockLabel').textContent='START ZA';$('crewInfo').textContent=`ZAŁOGA NR ${nr}`;$('mode').textContent='ODLICZANIE';$('crew').disabled=true;$('start').disabled=true;$('historyToggle').disabled=true;$('history').classList.remove('open');lamp(false)});$('historyToggle').addEventListener('click',()=>{$('history').classList.toggle('open');renderHistory()});$('export').addEventListener('click',()=>{const rows=load();const csv='\ufeffNumer załogi;Data;Czas startu;ISO\r\n'+rows.map(r=>`${r.crew};${r.date};${r.time};${r.timestamp}`).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='akr-start-timer-test.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});$('clear').addEventListener('click',()=>{if(confirm('Usunąć całą lokalną historię startów?')){store([]);renderHistory()}});window.addEventListener('beforeunload',e=>{if(state==='countdown'){e.preventDefault();e.returnValue=''}});renderHistory();tick()})();
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101010"><title>AKR START TIMER v6 · GOOGLE SHEETS</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:white;background:#0b0b0b}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation}.app{height:100dvh;display:flex;flex-direction:column;gap:7px;padding:8px;max-width:1800px;margin:auto}.top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:26px}.brand{font-size:clamp(14px,2vw,23px);font-weight:1000;font-style:italic}.brand b{color:#ff4545}.oslabel{font-weight:900;font-size:clamp(15px,2.2vw,25px);color:#ffe09a}.stage{min-height:0;flex:1;display:flex}.panel{width:100%;height:100%;border-radius:18px;border:2px solid #f22;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse,#e0000a 0%,#ae0000 60%,#710000 100%)}.panel.green{border-color:#19e34b;background:radial-gradient(ellipse,#0bce2b,#008c1d 60%,#00480d)}.panel.halted{background:#940000;border:5px solid #fff}.digits{font-weight:1000;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;letter-spacing:-.055em;text-align:center;font-size:min(72vh,72vw)}.digits.time{font-size:min(34vh,17vw)}.digits.go{font-size:min(78vh,65vw)}.digits.stop{font-size:min(24vh,16vw);letter-spacing:-.035em;white-space:normal;line-height:1.05;padding:10px}.controls{display:grid;grid-template-columns:175px 105px minmax(125px,1fr) minmax(100px,.75fr) minmax(140px,1fr);gap:7px}.controls>*{min-width:0;height:clamp(48px,10vh,76px);border:0;border-radius:10px;font-weight:900;font-size:clamp(15px,2.2vw,24px)}.controls select{font-size:clamp(13px,1.6vw,19px);padding:0 6px}.controls input{font-size:clamp(13px,1.7vw,20px)}.controls select,.controls input{background:#242424;border:2px solid #777;color:white;padding:0 10px}.start{background:#f2333c;color:white}.historybtn{background:#3b3b3b;color:white}.emergency{background:#fff000;color:#171000;border:3px solid #111}.foot{display:flex;justify-content:space-between;gap:10px;font-size:clamp(10px,1.2vw,14px);color:#bbb}.app.running{padding:0;gap:0;max-width:none}.app.running .top,.app.running .foot,.app.running .controls{display:none}.app.running .stage{flex:1;min-height:0}.app.running .panel{border:0;border-radius:0}.app.running .digits{font-size:min(78vh,78vw)}.app.running .digits.go{font-size:min(78vh,66vw)}.stopFloat{display:none;position:fixed;z-index:10;bottom:max(12px,env(safe-area-inset-bottom));right:max(12px,env(safe-area-inset-right));background:#fff000;color:#161000;border:4px solid #161000;border-radius:16px;padding:12px 22px;font-size:clamp(20px,3.5vw,34px);font-weight:1000;box-shadow:0 0 0 2px white}.app.running .stopFloat{display:block}.app.running .panel{padding-bottom:3vh}.app.stopped{padding:0;gap:0;max-width:none}.app.stopped .top,.app.stopped .controls,.app.stopped .foot,.app.stopped .stopFloat{display:none!important}.app.stopped .stage{flex:1}.app.stopped .panel{border-radius:0}.haltOverlay{display:none;position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:12;gap:10px;align-items:center;flex-direction:column;width:min(94vw,550px)}.app.stopped .haltOverlay{display:flex}.haltOverlay .note{font-size:clamp(13px,2vw,19px);font-weight:bold;text-align:center;background:#1c0000cc;padding:8px 12px;border-radius:8px}.resume{background:white;color:#920000;border:3px solid #fff;border-radius:12px;padding:12px 24px;font-size:clamp(18px,2.7vw,27px);font-weight:1000;width:100%}.history{display:none;position:fixed;z-index:20;inset:5%;background:#1c1c1c;border:2px solid #777;border-radius:14px;padding:18px;overflow:auto;box-shadow:0 0 0 100vmax #000b}.history.open{display:block}.history h2{margin:0 0 12px}.history table{width:100%;border-collapse:collapse;font-size:14px}.history td,.history th{padding:9px;text-align:left;border-bottom:1px solid #444}.history button{background:#444;color:white;border:0;border-radius:9px;padding:12px;margin:12px 7px 0 0;font-weight:bold}.warning{color:#ffd15d;font-size:13px;margin:8px 0}.status{color:#ffe09a}@media(max-width:850px) and (orientation:landscape){.controls{grid-template-columns:145px 85px minmax(105px,1fr) minmax(85px,.75fr) minmax(115px,1fr);gap:4px}.controls>*{font-size:clamp(12px,2vw,17px)}.controls select{font-size:13px;padding:0 3px}.controls input{padding:0 5px;font-size:14px}.emergency{font-size:13px!important}}@media(orientation:portrait){.controls{grid-template-columns:1fr 1fr}.controls select{grid-column:1}.controls input{grid-column:2}.controls .emergency{grid-column:1/-1}.digits.time{font-size:min(22vh,16vw)}.app.running .digits{font-size:min(75vw,60vh)}.app.running .digits.go{font-size:min(68vw,45vh)}.digits.stop{font-size:min(17vw,14vh)}}@media(max-height:440px) and (orientation:landscape){.app{gap:4px;padding:5px}.top{min-height:19px}.brand,.oslabel{font-size:14px}.controls>*{height:42px;font-size:15px}.foot{font-size:10px}.digits.time{font-size:min(35vh,17vw)}.app.running .digits{font-size:min(74vh,74vw)}.app.stopped .digits.stop{font-size:min(21vh,15vw)}.haltOverlay .note{font-size:12px}.resume{font-size:17px;padding:8px}}
+</style></head><body>
+<main class="app" id="app"><header class="top"><div class="brand">AKR <b>START</b> TIMER <small style="font-size:.55em;color:#bbb">v6</small></div><div class="oslabel" id="osLabel">WYBIERZ OS</div></header>
+<section class="stage"><div class="panel" id="panel"><div class="digits time" id="display">--:--:--</div></div></section>
+<section class="controls"><select id="os" aria-label="Odcinek specjalny"><option value="">WYBIERZ OS</option><option value="OS1">OS1</option><option value="OS2">OS2</option><option value="OS3">OS3</option><option value="OS4">OS4</option><option value="OS5">OS5</option><option value="OS6">OS6</option></select><input id="crew" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="NR ZAŁ." aria-label="Numer załogi"><button class="start" id="start">START · 30 s</button><button class="historybtn" id="historyToggle">HISTORIA</button><button class="emergency" id="stopIdle">🛑 STOP OS</button></section>
+<div class="foot"><span class="status" id="status">Gotowy · zapis lokalny + synchronizacja Sheets</span><span id="count">Starty: 0</span></div>
+<button class="stopFloat" id="stopRunning">🛑 STOP OS</button><div class="haltOverlay"><div class="note" id="haltNote">STARTY WSTRZYMANE · brak zgody na start</div><button class="resume" id="resume">🔒 WZNÓW STARTY</button></div>
+<section class="history" id="history"><h2>Historia lokalna · AKR START TIMER</h2><div class="warning">Starty zapisują się lokalnie. Próba wysłania nie jest potwierdzeniem zapisu w arkuszu (Google no-cors). Sprawdzaj Pomiary_Chrono. STOP OS jest zapisywany wyłącznie lokalnie.</div><table><thead><tr><th>OS</th><th>Załoga</th><th>Data</th><th>Godzina startu</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table><button id="export">Eksport CSV</button><button id="retry">Ponów oczekujące</button><button id="clear">Usuń historię</button><button id="close">Zamknij</button></section></main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const KEY='akr_start_timer_v5_records',OSKEY='akr_start_timer_v5_os',HALTKEY='akr_start_timer_v5_halted';
+const URL='https://script.google.com/macros/s/AKfycbxwbRPdy_GlFdqOyzvFcEx1z5d4w3pmyqbTAsYglZlOV01290lMHCX8lKjwMIYYzPh8Lw/exec';
+const allowed=['OS1','OS2','OS3','OS4','OS5','OS6'];
+const pad=(n,l=2)=>String(n).padStart(l,'0');
+const fmt=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const precise=d=>`${fmt(d)}.${pad(d.getMilliseconds(),3)}`;
+const chronoTime=d=>`${fmt(d)},${pad(Math.floor(d.getMilliseconds()/10))}`;
+let mode='idle',deadline=0,greenUntil=0,epoch=0,number='',activeOS='',saved=false,sending=false,syncTimer=null;
+function read(){try{const x=JSON.parse(localStorage.getItem(KEY));return Array.isArray(x)?x:[]}catch{return []}}
+function write(x){try{localStorage.setItem(KEY,JSON.stringify(x));return true}catch{return false}}
+function status(message){$('status').textContent=message}
+function record(type,ts,crew,os){
+ const d=new Date(ts),r={id:`AKRST-${ts}-${Math.random().toString(36).slice(2,12)}`,os,crew,
+ date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:precise(d),
+ timestamp:d.toISOString(),type,sync:type==='START'?'pending':'local',wersja:1};
+ const a=read();a.push(r);const ok=write(a);history();
+ status(ok?`${type==='START'?'Zapisano START':'Zapisano STOP'} · ${os} · ${r.time} · lokalnie`:'BŁĄD ZAPISU! Zapisz dane ręcznie!');
+ if(ok&&type==='START')scheduleSync();return ok;
+}
+function syncLabel(r){if(r.type!=='START')return 'STOP OS · lokalnie';if(r.sync==='verify')return 'Żądanie wysłane · sprawdź arkusz';if(r.sync==='sending')return 'Wysyłanie…';return 'Oczekuje na wysyłkę'}
+function history(){
+ const a=read(),starts=a.filter(r=>r.type==='START'),pending=starts.filter(r=>r.sync!=='verify');
+ $('count').textContent=`Starty: ${starts.length} · Kolejka: ${pending.length} · STOP: ${a.length-starts.length}`;
+ $('rows').replaceChildren();
+ for(const r of a.slice().reverse()){
+  const tr=document.createElement('tr');
+  for(const v of [r.os,r.crew||'—',r.date,r.time,syncLabel(r)]){
+   const td=document.createElement('td');td.textContent=v;tr.appendChild(td);
+  }
+  $('rows').appendChild(tr);
+ }
+}
+function updateRecord(id,patch){const a=read(),r=a.find(x=>x.id===id);if(!r)return false;Object.assign(r,patch);return write(a)}
+function scheduleSync(delay=400){if(syncTimer)clearTimeout(syncTimer);syncTimer=setTimeout(sendPending,delay)}
+async function sendPending(){
+ if(sending||!navigator.onLine)return;
+ sending=true;
+ try{
+  // 'verify' oznacza tylko wysłane żądanie; nie ponawiamy automatycznie,
+  // aby nie wywoływać niepotrzebnych dubli. ID chroni przed duplikacją na serwerze.
+  const todo=read().filter(r=>r.type==='START'&&(r.sync==='pending'||r.sync==='sending'));
+  for(const r of todo){
+   if(!navigator.onLine)break;
+   const d=new Date(r.timestamp);
+   if(isNaN(d.getTime())||!allowed.includes(r.os)||!/^[0-9]{1,4}$/.test(r.crew||'')){
+    status('Błąd danych w kolejce — sprawdź historię');continue;
+   }
+   const payload={id:String(r.id),nr_startowy:String(r.crew),rodzaj_pomiaru:'START',odcinek:r.os,
+     timestamp:chronoTime(d),data_iso:r.timestamp,wersja:r.wersja||1};
+   if(!updateRecord(r.id,{sync:'sending'})){status('BŁĄD pamięci — wysyłka wstrzymana');break}
+   history();
+   try{
+    await fetch(URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    // Odpowiedź no-cors jest nieprzejrzysta: NIE potwierdza zapisu w arkuszu.
+    if(!updateRecord(r.id,{sync:'verify'})){status('BŁĄD pamięci po wysyłce');break}
+    status('Wysłano żądanie START · sprawdź arkusz Pomiary_Chrono');
+   }catch(e){updateRecord(r.id,{sync:'pending'});status('Brak połączenia · START zapisany lokalnie');break}
+   history();
+  }
+ }finally{sending=false;history()}
+}
+function reset(){
+ mode='idle';$('app').className='app';$('panel').className='panel';$('display').className='digits time';
+ $('display').textContent=fmt(new Date());$('crew').value='';$('os').disabled=false;
+ $('start').disabled=false;$('historyToggle').disabled=false;$('osLabel').textContent=$('os').value||'WYBIERZ OS';
+}
+function halt(){
+ if(mode==='stopped')return;
+ const wasRunning=mode==='countdown';const stopOS=wasRunning||mode==='green'?activeOS:$('os').value;
+ const stopCrew=wasRunning?number:'';
+ mode='stopped';$('history').classList.remove('open');$('app').className='app stopped';
+ $('panel').className='panel halted';$('display').className='digits stop';$('display').textContent=`STOP ${stopOS||'OS'}`;
+ $('haltNote').textContent=`STARTY WSTRZYMANE ${stopOS?'· '+stopOS:''}${wasRunning?' · anulowano odliczanie załogi '+stopCrew:''}`;
+ try{localStorage.setItem(HALTKEY,'1')}catch{}
+ record('STOP',Date.now(),stopCrew,stopOS||'BRAK OS');
+}
+function tick(){
+ const now=performance.now();
+ if(mode==='idle'){$('display').textContent=fmt(new Date());return}
+ if(mode==='countdown'&&now>=deadline){
+  mode='green';
+  if(!saved){saved=true;record('START',epoch,number,activeOS)}
+  $('panel').classList.add('green');$('display').className='digits go';$('display').textContent='GO!';
+ }else if(mode==='countdown'){$('display').textContent=String(Math.ceil((deadline-now)/1000))}
+ if(mode==='green'&&now>=greenUntil)reset();
+}
+$('os').addEventListener('change',()=>{const v=$('os').value;$('osLabel').textContent=v||'WYBIERZ OS';try{localStorage.setItem(OSKEY,v)}catch{}});
+$('start').addEventListener('click',()=>{
+ if(mode!=='idle')return;const os=$('os').value,nr=$('crew').value.trim();
+ if(!allowed.includes(os)){alert('Najpierw wybierz OS1–OS6.');return}
+ if(!/^\d{1,4}$/.test(nr)){alert('Wpisz numer załogi (1–4 cyfry).');return}
+ // Zablokuj start, jeśli lokalna pamięć jest niedostępna.
+ try{const test='akr_start_storage_test';localStorage.setItem(test,'1');localStorage.removeItem(test)}catch{alert('Pamięć urządzenia niedostępna! Nie rozpoczynaj startu.');return}
+ activeOS=os;number=nr;saved=false;const p=performance.now();deadline=p+30000;
+ greenUntil=deadline+3000;epoch=Date.now()+30000;mode='countdown';
+ $('history').classList.remove('open');$('app').className='app running';$('panel').className='panel';
+ $('display').className='digits';$('display').textContent='30';$('os').disabled=true;
+ $('start').disabled=true;$('historyToggle').disabled=true;tick();
+});
+$('stopIdle').addEventListener('click',halt);$('stopRunning').addEventListener('click',halt);
+$('resume').addEventListener('click',()=>{
+ if(mode!=='stopped')return;
+ if(!confirm('Czy kierownictwo rajdu wyraziło zgodę na wznowienie startów na tym OS?'))return;
+ try{localStorage.removeItem(HALTKEY)}catch{}
+ reset();status('Starty wznowione · gotowy');
+});
+$('historyToggle').addEventListener('click',()=>{if(mode!=='idle')return;history();$('history').classList.toggle('open')});
+$('close').addEventListener('click',()=>$('history').classList.remove('open'));
+$('retry').addEventListener('click',()=>{scheduleSync(0);status('Ponawiam rekordy oczekujące…')});
+$('export').addEventListener('click',()=>{
+ const a=read(),lines=['﻿OS;Numer załogi;Data;Godzina;ISO;Zdarzenie;ID;Status'];
+ for(const r of a)lines.push([r.os,r.crew,r.date,r.time,r.timestamp,r.type,r.id,syncLabel(r)].join(';'));
+ const url=URL.createObjectURL(new Blob([lines.join('\r\n')],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
+ link.href=url;link.download='akr-start-timer-v6-historia.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+});
+$('clear').addEventListener('click',()=>{
+ if(!confirm('UWAGA! Usuniesz także starty, które mogły NIE dotrzeć do arkusza. Najpierw wyeksportuj CSV i sprawdź Pomiary_Chrono. Czy na pewno usunąć WSZYSTKO?'))return;
+ if(!confirm('OSTATNIE POTWIERDZENIE: usunąć lokalną historię i kolejkę wysyłki?'))return;
+ if(write([]))history();else alert('Nie udało się wyczyścić danych');
+});
+window.addEventListener('beforeunload',e=>{if(mode==='countdown'||mode==='green'){e.preventDefault();e.returnValue=''}});
+window.addEventListener('online',()=>scheduleSync(300));
+document.addEventListener('visibilitychange',()=>{tick();if(!document.hidden)scheduleSync(300)});
+let storedOS='';try{storedOS=localStorage.getItem(OSKEY)||''}catch{}
+if(allowed.includes(storedOS))$('os').value=storedOS;
+// Po przerwaniu aplikacji podczas wysyłki rekord 'sending' jest ponawiany po otwarciu.
+history();reset();let halted=false;try{halted=localStorage.getItem(HALTKEY)==='1'}catch{}
+if(halted){mode='stopped';$('app').className='app stopped';$('panel').className='panel halted';
+ $('display').className='digits stop';$('display').textContent=`STOP ${$('os').value||'OS'}`;
+ $('haltNote').textContent='STARTY WSTRZYMANE · wymagana zgoda na wznowienie';}
+setInterval(tick,30);scheduleSync(900);
+})();
 </script></body></html>
